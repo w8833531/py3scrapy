@@ -6,8 +6,6 @@ import scrapy
 from scrapy.loader import ItemLoader
 from py3scrapy.items import ZhihuQuestionItem, ZhihuAnswerItem
 
-
-
 try:
     import urlparse as parse
 except:
@@ -17,7 +15,9 @@ try:
     from PIL import Image
 except:
     pass
-#sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
+
+
+# sys.stdout = io.TextIOWrapper(sys.stdout.buffer,encoding='utf8')
 
 class ZhihuSpider(scrapy.Spider):
     name = 'zhihu'
@@ -33,7 +33,7 @@ class ZhihuSpider(scrapy.Spider):
     }
     postdata = {
         '_xsrf': '',
-        'password': 'SSyn761009',
+        'password': '761009',
         'phone_num': '18917918960',
         'captcha': ''
     }
@@ -53,7 +53,8 @@ class ZhihuSpider(scrapy.Spider):
                 request_url = match_obj.group(1)
                 question_id = int(match_obj.group(2))
 
-                yield scrapy.Request(request_url, headers = self.headers, meta={"question_id":question_id}, callback = self.parse_question)
+                yield scrapy.Request(request_url, headers=self.headers, meta={"question_id": question_id},
+                                     callback=self.parse_question)
                 break
             else:
                 # 如果不是question页面，就进一步跟踪
@@ -65,9 +66,9 @@ class ZhihuSpider(scrapy.Spider):
         if "QuestionHeader-title" in response.text:
             # 处理新版本
             question_id = response.meta.get("question_id", "")
-            item_loader = ItemLoader(item = ZhihuQuestionItem(), response = response)
+            item_loader = ItemLoader(item=ZhihuQuestionItem(), response=response)
             item_loader.add_css("title", "h1.QuestionHeader-title::text")
-            #item_loader.add_css("topics", ".QuestionHeader-topics .Popover::text")
+            # item_loader.add_css("topics", ".QuestionHeader-topics .Popover::text")
             item_loader.add_xpath("topics", "//div[@class='QuestionHeader-topics']//div[@class='Popover']//text()")
             item_loader.add_css("content", ".QuestionHeader-detail")
             item_loader.add_css("answer_num", ".List-headerText span::text")
@@ -80,14 +81,14 @@ class ZhihuSpider(scrapy.Spider):
             question_item = item_loader.load_item()
         else:
             # 处理老版本,先假设没有老版本的内容
-            print ("========发现老版本的页面========")
-        print (self.start_answer_url.format(question_id, 20, 0))
+            print("========发现老版本的页面========")
+        print(self.start_answer_url.format(question_id, 20, 0))
 
-        yield scrapy.Request(self.start_answer_url.format(question_id, 20, 0), headers = self.headers, callback= self.parse_answer)
-        #yield question_item
+        yield scrapy.Request(self.start_answer_url.format(question_id, 20, 0), headers=self.headers,
+                             callback=self.parse_answer)
+        # yield question_item
 
-
-    def parse_answer(self,response):
+    def parse_answer(self, response):
         # 处理question 的answer
         answer_json = json.loads(response.text)
         is_end = answer_json["paging"]["is_end"]
@@ -112,11 +113,8 @@ class ZhihuSpider(scrapy.Spider):
         if not is_end:
             yield scrapy.Request(next_url, headers=self.headers, callback=self.parse_answer)
 
-
-
-
     def start_requests(self):
-        return [scrapy.Request('https://www.zhihu.com/#signin', headers = self.headers, callback=self.get_xsrf)]
+        return [scrapy.Request('https://www.zhihu.com/#signin', headers=self.headers, callback=self.get_xsrf)]
 
     def get_xsrf(self, response):
         response_text = response.text
